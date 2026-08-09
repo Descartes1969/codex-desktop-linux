@@ -1,0 +1,5 @@
+# Exact policy used on the single qualified workstation.
+# This is evidence, not a recommended default. Keep approval prompts and a
+# narrower sandbox unless your threat model explicitly requires host authority.
+approval_policy = "never"
+sandbox_mode = "danger-full-access"
