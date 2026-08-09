@@ -787,6 +787,13 @@ prepend_managed_node_runtime_to_path() {
     export CODEX_MANAGED_NODE_RUNTIME_DIR="$SCRIPT_DIR/resources/node-runtime"
 }
 
+launcher_security_env_name() {
+    case "$1" in
+        CODEX_LINUX_ENABLE_CHROMIUM_SANDBOX|CHROME_DEVEL_SANDBOX|CODEX_ELECTRON_EXECUTABLE) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
 source_feature_env_files() {
     [ -n "${FEATURE_ENV_DIR:-}" ] || return 0
     [ -d "$FEATURE_ENV_DIR" ] || return 0
@@ -816,6 +823,10 @@ source_feature_env_files() {
                     continue
                     ;;
             esac
+            if launcher_security_env_name "$name"; then
+                echo "Ignoring protected Linux launcher security assignment in $env_file: $name"
+                continue
+            fi
             export "$name=$value"
         done < "$env_file"
     done
@@ -2417,13 +2428,13 @@ pid_matches_appimage_install() {
 pid_matches_app_install() {
     local pid="$1"
 
-    pid_matches_executable "$pid" "$SCRIPT_DIR/electron" || pid_matches_appimage_install "$pid"
+    pid_matches_executable "$pid" "$ELECTRON_EXECUTABLE" || pid_matches_appimage_install "$pid"
 }
 
 pid_matches_running_app() {
     local pid="$1"
 
-    if pid_matches_executable "$pid" "$SCRIPT_DIR/electron"; then
+    if pid_matches_executable "$pid" "$ELECTRON_EXECUTABLE"; then
         return 0
     fi
 
@@ -2599,7 +2610,7 @@ terminate_stale_electron_with_pidfd() {
     python3 - \
         "$pid" \
         "$expected_start_time" \
-        "$SCRIPT_DIR/electron" \
+        "$ELECTRON_EXECUTABLE" \
         "${APPIMAGE:-}" \
         "$CODEX_LINUX_APP_ID" \
         "$CODEX_LINUX_INSTANCE_ID" \
@@ -3906,6 +3917,10 @@ apply_feature_launcher_hook_env() {
         echo "Ignoring invalid Linux feature launcher hook env assignment: $assignment"
         return 0
     fi
+    if launcher_security_env_name "$name"; then
+        echo "Ignoring protected Linux launcher security assignment from feature hook: $name"
+        return 0
+    fi
 
     printf -v "$name" '%s' "$value"
     export "$name"
@@ -4024,6 +4039,79 @@ run_feature_launcher_hooks() {
     done
 }
 
+chromium_sandbox_requested() {
+    early_truthy_env_value "${CODEX_LINUX_ENABLE_CHROMIUM_SANDBOX:-}"
+}
+
+select_electron_executable() {
+    local selected="${CODEX_ELECTRON_EXECUTABLE:-$SCRIPT_DIR/electron}"
+    local bundled="$SCRIPT_DIR/electron"
+    local selected_identity
+    local bundled_identity
+
+    ELECTRON_EXECUTABLE="$bundled"
+    [ "$selected" != "$bundled" ] || return 0
+    case "$selected" in
+        /*) ;;
+        *) echo "CODEX_ELECTRON_EXECUTABLE must be absolute" >&2; return 1 ;;
+    esac
+    if [ -L "$selected" ] || [ ! -f "$selected" ] || [ ! -x "$selected" ]; then
+        echo "Selected Electron executable must be a non-symlink executable regular file: $selected" >&2
+        return 1
+    fi
+    selected_identity="$(stat -Lc '%d:%i' -- "$selected" 2>/dev/null)" || return 1
+    bundled_identity="$(stat -Lc '%d:%i' -- "$bundled" 2>/dev/null)" || return 1
+    if [ "$selected_identity" != "$bundled_identity" ]; then
+        echo "Selected Electron executable must share the generated Electron inode: $selected" >&2
+        return 1
+    fi
+    ELECTRON_EXECUTABLE="$selected"
+}
+
+reject_chromium_sandbox_disable_args() {
+    local arg
+    local name
+
+    for arg in "${ELECTRON_LAUNCH_ARGS[@]}" "${ELECTRON_ARGS[@]}"; do
+        name="${arg%%=*}"
+        case "$name" in
+            --no-sandbox|--disable-*-sandbox)
+                echo "Chromium sandbox mode refuses conflicting Electron argument: $arg" >&2
+                return 1
+                ;;
+        esac
+    done
+}
+
+validate_chromium_sandbox_helper() {
+    local helper="${CHROME_DEVEL_SANDBOX:-$SCRIPT_DIR/chrome-sandbox}"
+    local bundled_helper="$SCRIPT_DIR/chrome-sandbox"
+    local metadata
+
+    case "$helper" in
+        /*) ;;
+        *)
+            echo "CODEX_LINUX_ENABLE_CHROMIUM_SANDBOX requires an absolute CHROME_DEVEL_SANDBOX path" >&2
+            return 1
+            ;;
+    esac
+    if [ -L "$helper" ] || [ ! -f "$helper" ] || [ ! -x "$helper" ]; then
+        echo "Chromium sandbox helper must be a non-symlink executable regular file: $helper" >&2
+        return 1
+    fi
+    if ! metadata="$(stat -Lc '%u:%g:%a' -- "$helper" 2>/dev/null)" || [ "$metadata" != "0:0:4755" ]; then
+        echo "Chromium sandbox helper must be root:root mode 4755: $helper" >&2
+        return 1
+    fi
+    if [ ! -f "$bundled_helper" ] || ! cmp -s -- "$helper" "$bundled_helper"; then
+        echo "Chromium sandbox helper does not match the helper bundled with this Electron build" >&2
+        return 1
+    fi
+
+    CHROME_DEVEL_SANDBOX="$helper"
+    export CHROME_DEVEL_SANDBOX
+}
+
 build_electron_launch_args() {
     local enable_features_arg
 
@@ -4050,11 +4138,20 @@ build_electron_launch_args() {
     fi
 
     ELECTRON_LAUNCH_ARGS=(
-        --no-sandbox
         --class="$CODEX_LINUX_APP_ID"
         --app-id="$CODEX_LINUX_APP_ID"
-        --disable-gpu-sandbox
     )
+
+    if chromium_sandbox_requested; then
+        validate_chromium_sandbox_helper || exit 1
+        echo "Chromium renderer sandbox requested; validated helper: $CHROME_DEVEL_SANDBOX"
+    else
+        ELECTRON_LAUNCH_ARGS=(
+            --no-sandbox
+            "${ELECTRON_LAUNCH_ARGS[@]}"
+            --disable-gpu-sandbox
+        )
+    fi
 
     if should_disable_dev_shm_usage; then
         ELECTRON_LAUNCH_ARGS+=(--disable-dev-shm-usage)
@@ -4105,6 +4202,10 @@ build_electron_launch_args() {
         ELECTRON_LAUNCH_ARGS+=("$enable_features_arg")
     fi
 
+    if chromium_sandbox_requested; then
+        reject_chromium_sandbox_disable_args || exit 1
+    fi
+
 }
 
 print_scaling_diagnostics() {
@@ -4153,7 +4254,7 @@ print_scaling_diagnostics() {
     echo ""
     echo "Electron runtime:"
     printf '  electron: %s\n' "$(cat "$SCRIPT_DIR/version" 2>/dev/null || echo unknown)"
-    printf '  binary: %s\n' "$SCRIPT_DIR/electron"
+    printf '  binary: %s\n' "$ELECTRON_EXECUTABLE"
 
     echo ""
     echo "Computed Electron launch flags (feature launcher hooks are not executed here):"
@@ -4441,6 +4542,7 @@ launch_electron() {
     set_electron_defaults "${FEATURE_ELECTRON_ARGS[@]}" "${USER_ELECTRON_FLAGS[@]}" "$@"
     run_feature_launcher_hooks
     build_electron_launch_args
+    select_electron_executable || exit 1
 
     if [ "$WARM_START" -eq 1 ]; then
         release_launcher_lock
@@ -4449,7 +4551,7 @@ launch_electron() {
             echo "Rendering hint: if the side panel flickers or appears transparent on Wayland, retry with CODEX_ELECTRON_DISABLE_GPU_COMPOSITING=1"
         fi
         unset ELECTRON_RUN_AS_NODE
-        "$SCRIPT_DIR/electron" "${ELECTRON_LAUNCH_ARGS[@]}" "${ELECTRON_ARGS[@]}"
+        "$ELECTRON_EXECUTABLE" "${ELECTRON_LAUNCH_ARGS[@]}" "${ELECTRON_ARGS[@]}"
         return $?
     fi
 
@@ -4460,7 +4562,7 @@ launch_electron() {
     require_active_launcher_lock
     (
         unset ELECTRON_RUN_AS_NODE
-        exec "$SCRIPT_DIR/electron" "${ELECTRON_LAUNCH_ARGS[@]}" "${ELECTRON_ARGS[@]}"
+        exec "$ELECTRON_EXECUTABLE" "${ELECTRON_LAUNCH_ARGS[@]}" "${ELECTRON_ARGS[@]}"
     ) &
     ELECTRON_PID=$!
     if [ -n "${RUNNING_APP_PID:-}" ] && pid_matches_running_app "$RUNNING_APP_PID"; then
@@ -4485,6 +4587,7 @@ export_feature_runtime_env
 load_packaged_runtime_helper
 prepend_managed_node_runtime_to_path
 source_feature_env_files
+select_electron_executable || exit 1
 if [ "$LAUNCHER_DIAGNOSE_SCALING" -eq 1 ]; then
     print_scaling_diagnostics
     exit 0

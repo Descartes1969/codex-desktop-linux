@@ -15,6 +15,19 @@ The official ChatGPT app is available for macOS and Windows; this repository
 covers Linux by converting the upstream macOS `Codex.dmg` into a runnable Linux
 Electron app.
 
+> [!IMPORTANT]
+> **Experimental host-native Full-access qualification variant.** This branch
+> preserves the upstream project's history and MIT license while documenting a
+> separately qualified Ubuntu/GNOME/X11 configuration. It is unofficial and is
+> not an OpenAI-supported Linux release. Read the
+> [engineering article](docs/host-native-full-access-article.md), follow the
+> [implementation guide](docs/host-native-full-access-guide.md), inspect the
+> [support scripts](scripts/host-native-full-access/), and run the
+> [qualification tests](tests/host-native-full-access/). Host-native Full access
+> grants the application real logged-in-user authority; understand that boundary
+> before enabling it. The exact no-approval policy used for local qualification
+> is documented as a reference, not recommended as a default.
+
 The project builds native `.deb`, `.rpm`, and `.pkg.tar.zst` packages, supports
 local AppImage self-builds and Nix, and can install a local update manager that
 rebuilds future Linux packages from newer upstream DMGs.
