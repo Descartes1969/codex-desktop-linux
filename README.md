@@ -15,6 +15,28 @@ The official ChatGPT app is available for macOS and Windows; this repository
 covers Linux by converting the upstream macOS `Codex.dmg` into a runnable Linux
 Electron app.
 
+## Host-native Full-access contribution
+
+This fork contains the Host-Native Full Access qualification work developed
+and published by **[Descartes1969](https://github.com/Descartes1969)**. The
+contribution adds hardened host-native launcher integration; protected security
+variables and argument paths; clean warm-start/pidfd executable identity
+handling; retained Chromium renderer sandboxing with fail-closed validation
+and matching-helper setup; and conditional no-space compatibility. It also
+includes the companion implementation guide and reproducibility/qualification
+tests.
+
+Start with the [engineering article](docs/host-native-full-access-article.md),
+follow the [implementation guide](docs/host-native-full-access-guide.md),
+inspect the [source-level support code](scripts/host-native-full-access/), and
+run the [qualification tests](tests/host-native-full-access/).
+
+This is an unofficial fork based on and derived from
+[`ilysenko/codex-desktop-linux`](https://github.com/ilysenko/codex-desktop-linux).
+The upstream project's history, authorship, MIT license, and notices remain in
+place; this attribution does not imply that Descartes1969 authored the original
+upstream project or that this is an OpenAI-supported Linux release.
+
 > [!IMPORTANT]
 > **Experimental host-native Full-access qualification variant.** This branch
 > preserves the upstream project's history and MIT license while documenting a

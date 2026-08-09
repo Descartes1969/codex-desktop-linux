@@ -1,5 +1,7 @@
 # From Isolation to Host-Native Full Access: Engineering an Unofficial Codex Desktop Wrapper for Linux
 
+By Descartes1969
+
 There is a large gap between making an Electron window appear on Linux and producing a desktop tool that can be trusted with real development work. A window can open while Chromium's renderer sandbox is disabled. It can display a sign-in page while writing into the wrong profile. It can advertise “Full access” while an outer namespace quietly hides the user's Git configuration, credentials, network and most of the filesystem. It can appear to close while an invisible process keeps the single-instance lock forever.
 
 This project began with an audit of `ilysenko/codex-desktop-linux`, an unofficial community wrapper that converts OpenAI's macOS ChatGPT/Codex desktop payload into a Linux Electron application. The audited baseline was commit `7166d1153fd99647fb080605c8b2a8f22b50b08f`. The goal was not to create an official OpenAI Linux application, and this work does not make that claim. The goal was narrower and more demanding: determine whether the wrapper could become a usable, evidence-qualified Linux desktop on one Ubuntu/GNOME/X11 workstation.
