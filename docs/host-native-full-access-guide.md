@@ -112,7 +112,9 @@ If helper validation fails, the feature exits instead of falling back to an unsa
 The feature intentionally rejects `.deb`, RPM, and pacman packaging: native
 installation makes Electron root-owned, and Chromium will not honor this
 development-helper environment path in that configuration. Use the generated
-user-managed `codex-app/` for this qualified mode.
+user-managed `codex-app/` for this qualified mode. The Nix feature selector
+does not expose `chromium-sandbox` because its store executable has the same
+ownership incompatibility.
 
 ## Historical no-space compatibility finding
 
