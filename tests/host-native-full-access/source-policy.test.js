@@ -10,6 +10,7 @@ const launcher = fs.readFileSync(path.join(root, "launcher/start.sh.template"), 
 const featureDir = path.join(root, "linux-features/chromium-sandbox");
 const scripts = path.join(root, "scripts/host-native-full-access");
 const tests = path.join(root, "tests/host-native-full-access");
+const repairedBase = "05bbbc6cb4b7729e01b15348c0082a086816da84";
 
 test("portable Chromium policy is disabled by default and feature-owned", () => {
   const manifest = JSON.parse(fs.readFileSync(path.join(featureDir, "feature.json"), "utf8"));
@@ -24,6 +25,20 @@ test("portable Chromium policy is disabled by default and feature-owned", () => 
   assert.match(hook, /electron-default-arg-remove --no-sandbox/);
   assert.match(hook, /electron-arg-deny --disable-\*-sandbox/);
   assert.match(hook, /generated-chrome-sandbox/);
+});
+
+test("public reconciliation names the repaired base and Chromium feature", () => {
+  const readme = fs.readFileSync(path.join(root, "README.md"), "utf8");
+  const guide = fs.readFileSync(path.join(root, "docs/host-native-full-access-guide.md"), "utf8");
+  const article = fs.readFileSync(path.join(root, "docs/host-native-full-access-article.md"), "utf8");
+
+  assert.match(readme,
+    /\| Chromium SUID sandbox \| Opt-in; user-managed generated apps only \| `chromium-sandbox` \|/);
+  assert.match(guide, new RegExp(repairedBase, "g"));
+  assert.match(article, new RegExp(repairedBase));
+  for (const content of [guide, article]) {
+    assert.doesNotMatch(content, /3291c41a7222a5384b5dee923761a60ec1b710ad/);
+  }
 });
 
 test("generic launch preparation precedes both resident handoff paths", () => {
