@@ -242,6 +242,7 @@ workarounds.
 | Authenticated proxy | Opt-in | `authenticated-proxy` | [Docs](linux-features/authenticated-proxy/README.md) |
 | Wrapper updater button | Opt-in | `codex-wrapper-updater` | [Docs](linux-features/codex-wrapper-updater/README.md) |
 | Codex Micro (USB-C / Bluetooth) | Opt-in | `codex-micro` | [Docs](linux-features/codex-micro/README.md) |
+| Chromium SUID sandbox | Opt-in; user-managed generated apps only | `chromium-sandbox` | [Docs](linux-features/chromium-sandbox/README.md) |
 | Conversation mode | Opt-in | `conversation-mode` | [Docs](linux-features/conversation-mode/README.md) |
 | Copilot reasoning effort defaults | Opt-in | `copilot-reasoning-effort` | [Docs](linux-features/copilot-reasoning-effort/README.md) |
 | Directory-only working-tree watch | Opt-in | `directory-only-working-tree-watch` | [Docs](linux-features/directory-only-working-tree-watch/README.md) |

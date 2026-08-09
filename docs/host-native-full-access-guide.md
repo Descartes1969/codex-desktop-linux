@@ -2,7 +2,7 @@
 
 This guide accompanies [From Isolation to Host-Native Full Access](./host-native-full-access-article.md). It describes an experimental, source-built variant of the unofficial `ilysenko/codex-desktop-linux` community project. It is not an OpenAI-supported Linux release.
 
-This reconciliation candidate is based on upstream commit `3291c41a7222a5384b5dee923761a60ec1b710ad`, inspected on 2026-08-09, plus the locally reviewed PR #1264 repair. Recheck the source changes and tests before rebasing onto another upstream revision.
+This reconciliation candidate is based on upstream commit `05bbbc6cb4b7729e01b15348c0082a086816da84`, inspected on 2026-08-09, plus the locally reviewed PR #1264 repair. Recheck the source changes and tests before rebasing onto another upstream revision.
 
 ## Scope and warning
 
@@ -52,7 +52,7 @@ git rev-parse HEAD
 Compare the resulting publication commit to the commit recorded on the branch's GitHub page. The repaired upstream base is:
 
 ```text
-3291c41a7222a5384b5dee923761a60ec1b710ad
+05bbbc6cb4b7729e01b15348c0082a086816da84
 ```
 
 Run all source-level checks before downloading the application payload:

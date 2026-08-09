@@ -168,7 +168,7 @@ The original upstream claims in this article are bound to
 `ilysenko/codex-desktop-linux` HEAD
 `de575d0cc6e2789cf9e53c02e7d68485cc5c2e93`, inspected on 2026-08-08.
 The PR #1264 correction addendum is separately bound to upstream
-`3291c41a7222a5384b5dee923761a60ec1b710ad` and the local repaired candidate
+`05bbbc6cb4b7729e01b15348c0082a086816da84` and the local repaired candidate
 based on it, inspected and qualified on 2026-08-09. Relevant upstream
 repository-relative evidence includes `docs/linux-computer-use.md`,
 `scripts/patches/impl/computer-use.js`, `launcher/start.sh.template`,
